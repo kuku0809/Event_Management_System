@@ -1,11 +1,12 @@
 package com.example.demo.service.payment.validators;
-
+import org.springframework.stereotype.Component;
 import com.example.demo.dto.PaymentRequest;
 import com.example.demo.exception.PaymentValidationException;
 import com.example.demo.service.BookingService;
 import com.example.demo.service.UserService;
 
 // Concrete validators
+@Component
 class AmountValidator extends PaymentValidator {
     @Override
     public void validate(PaymentRequest request) throws PaymentValidationException {
@@ -16,6 +17,7 @@ class AmountValidator extends PaymentValidator {
     }
 }
 
+@Component
 class BookingValidator extends PaymentValidator {
     private final BookingService bookingService;
 
@@ -32,6 +34,7 @@ class BookingValidator extends PaymentValidator {
     }
 }
 
+@Component
 class UserValidator extends PaymentValidator {
     private final UserService userService;
 
@@ -48,6 +51,7 @@ class UserValidator extends PaymentValidator {
     }
 }
 
+@Component
 class CardPaymentValidator extends PaymentValidator {
     @Override
     public void validate(PaymentRequest request) throws PaymentValidationException {
@@ -67,6 +71,7 @@ class CardPaymentValidator extends PaymentValidator {
     }
 }
 
+@Component
 class UpiPaymentValidator extends PaymentValidator {
     @Override
     public void validate(PaymentRequest request) throws PaymentValidationException {
