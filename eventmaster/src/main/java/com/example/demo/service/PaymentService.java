@@ -3,6 +3,9 @@ package com.example.demo.service;
 import com.example.demo.dto.PaymentRequest;
 import com.example.demo.model.*;
 import com.example.demo.repository.PaymentRepository;
+import com.example.demo.service.payment.validators.PaymentValidator;
+
+import org.springframework.beans.factory.annotation.Qualifier;
 //import com.example.demo.repository.UserRepository;
 import org.springframework.stereotype.Service;
 import java.time.LocalDateTime;
@@ -11,70 +14,88 @@ import java.time.LocalDateTime;
 public class PaymentService {
     private final PaymentRepository paymentRepository;
     private final BookingService bookingService;
-    private final UserService userService; // Add this
+    private final UserService userService;
+    private final PaymentValidator paymentValidator;
 
     public PaymentService(PaymentRepository paymentRepository, 
                         BookingService bookingService,
-                        UserService userService) {
+                        UserService userService,
+                        @Qualifier("createDefaultChain") PaymentValidator paymentValidator ) {
         this.paymentRepository = paymentRepository;
         this.bookingService = bookingService;
         this.userService = userService;
+        this.paymentValidator = paymentValidator;
     }
 
     public Payment processPayment(PaymentRequest paymentRequest) {
-        if (paymentRequest.getAmount() <= 0) {
-            throw new IllegalArgumentException("Invalid payment amount");
-        }
 
-        Booking booking = bookingService.getBookingById(paymentRequest.getBookingId())
-                .orElseThrow(() -> new IllegalArgumentException("Booking not found"));
+        paymentValidator.validate(paymentRequest);
+        // Proceed only if validation passes
+    Payment payment = new Payment();
+    payment.setAmount(paymentRequest.getAmount());
+    payment.setBooking(bookingService.getBookingById(paymentRequest.getBookingId()).get());
+    payment.setUser(userService.getUserById(paymentRequest.getUserId()).get());
+    payment.setPaymentDate(LocalDateTime.now());
+    payment.setPaymentMethod(Payment.PaymentMethod.valueOf(paymentRequest.getPaymentMethod()));
+    payment.setPaymentStatus(Payment.PaymentStatus.COMPLETED);
 
-        User user = userService.getUserById(paymentRequest.getUserId())
-                .orElseThrow(() -> new IllegalArgumentException("User not found"));
+    return paymentRepository.save(payment);
 
-        Payment payment = new Payment();
-        payment.setAmount(paymentRequest.getAmount());
-        payment.setBooking(booking);
-        payment.setUser(user); // Set the user
-        payment.setPaymentDate(LocalDateTime.now());
+        // if (paymentRequest.getAmount() <= 0) {
+        //     throw new IllegalArgumentException("Invalid payment amount");
+        // }
 
-        String method = paymentRequest.getPaymentMethod().toUpperCase();
+        // Booking booking = bookingService.getBookingById(paymentRequest.getBookingId())
+        //         .orElseThrow(() -> new IllegalArgumentException("Booking not found"));
 
-        switch (method) {
-            case "CARD":
-                if (paymentRequest.getCardNumber() == null || paymentRequest.getCardHolderName() == null || !isValidCardPassword(paymentRequest.getCardPassword())) {
-                    throw new IllegalArgumentException("Invalid card credentials");
-                }
-                payment.setPaymentMethod(Payment.PaymentMethod.CARD);
-                break;
+        // User user = userService.getUserById(paymentRequest.getUserId())
+        //         .orElseThrow(() -> new IllegalArgumentException("User not found"));
 
-            case "UPI":
-                if (!isValidUpiPin(paymentRequest.getUpiPin())) {
-                    throw new IllegalArgumentException("Invalid upi credentials");
-                }
-                payment.setPaymentMethod(Payment.PaymentMethod.UPI);
-                break;
+    //     Payment payment = new Payment();
+    //     payment.setAmount(paymentRequest.getAmount());
+    //     payment.setBooking(booking);
+    //     payment.setUser(user); // Set the user
+    //     payment.setPaymentDate(LocalDateTime.now());
 
-            case "CASH":
-                payment.setPaymentMethod(Payment.PaymentMethod.CASH);
-                break;
+    //     String method = paymentRequest.getPaymentMethod().toUpperCase();
 
-            default:
-                throw new IllegalArgumentException("Unsupported payment method");
-        }
+    //     switch (method) {
+    //         case "CARD":
+    //             if (paymentRequest.getCardNumber() == null || paymentRequest.getCardHolderName() == null || !isValidCardPassword(paymentRequest.getCardPassword())) {
+    //                 throw new IllegalArgumentException("Invalid card credentials");
+    //             }
+    //             payment.setPaymentMethod(Payment.PaymentMethod.CARD);
+    //             break;
 
-        payment.setPaymentStatus(Payment.PaymentStatus.COMPLETED);
-        return paymentRepository.save(payment);
-    }
+    //         case "UPI":
+    //             if (!isValidUpiPin(paymentRequest.getUpiPin())) {
+    //                 throw new IllegalArgumentException("Invalid upi credentials");
+    //             }
+    //             payment.setPaymentMethod(Payment.PaymentMethod.UPI);
+    //             break;
 
-    private boolean isValidCardPassword(String password) {
-        return password != null && password.length() >= 4;
-    }
+    //         case "CASH":
+    //             payment.setPaymentMethod(Payment.PaymentMethod.CASH);
+    //             break;
+
+    //         default:
+    //             throw new IllegalArgumentException("Unsupported payment method");
+    //     }
+
+    //     payment.setPaymentStatus(Payment.PaymentStatus.COMPLETED);
+    //     return paymentRepository.save(payment);
+    // }
+
+    // private boolean isValidCardPassword(String password) {
+    //     return password != null && password.length() >= 4;
+    // }
 
     
-    private boolean isValidUpiPin(String pin) {
-        return pin != null && pin.length() == 4;
-    }
+    // private boolean isValidUpiPin(String pin) {
+    //     return pin != null && pin.length() == 4;
+    // }
+
+}
 
 }
 
