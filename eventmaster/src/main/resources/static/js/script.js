@@ -533,7 +533,84 @@ document.getElementById('auth-container').style.height = '100vh';
     function skipFoodOrder() {
         showPaymentPage(false);
     }
+    let paymentCompleted = false; 
+    function processPayment() {
+        return new Promise((resolve, reject) => {
+            fetch('/payments', {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify(paymentData)
+            })
+            .then(response => {
+                if (!response.ok) throw new Error('Payment failed');
+                paymentCompleted = true;
+                
+                // Enable download button after payment
+                const downloadBtn = document.getElementById('download-invoice-btn');
+                if (downloadBtn) {
+                    downloadBtn.disabled = false;
+                    downloadBtn.textContent = 'Download Invoice';
+                }
+                
+                resolve();
+            })
+            .catch(error => {
+                alert('Payment failed: ' + error.message);
+                reject(error);
+            });
+        });
+    }
 
+    function downloadInvoice(bookingId) {
+        console.log("Download invoice called with ID:", bookingId);
+        console.log("Payment completed status:", paymentCompleted);
+        console.log("Current booking:", currentBooking);
+        console.log("Food cart:", foodCart);
+        
+        if (!paymentCompleted) {
+            alert('Please complete payment first');
+            return;
+        }
+        
+        try {
+            // Collect all necessary data
+            const invoiceData = {
+                bookingId: currentBooking.id,
+                seatPrice: currentBooking.totalPrice,
+                seatCount: currentBooking.seats,
+                seatNumbers: currentBooking.seatNumbers,
+                eventName: currentBooking.event.name,
+                food: foodCart.map(item => ({
+                    name: item.name,
+                    quantity: item.quantity,
+                    price: item.price
+                })),
+                foodTotal: foodCart.reduce((sum, item) => sum + (item.price * item.quantity), 0),
+                total: currentBooking.totalPrice + foodCart.reduce((sum, item) => sum + (item.price * item.quantity), 0)
+            };
+            
+            console.log("Invoice data prepared:", invoiceData);
+            
+            // Store data in localStorage
+            localStorage.setItem("invoiceData", JSON.stringify(invoiceData));
+            console.log("Data stored in localStorage");
+            
+            // Open the invoice page
+            const invoiceWindow = window.open("/invoice.html", "_blank");
+            console.log("Invoice window opened:", !!invoiceWindow);
+            
+            // Fallback in case popup is blocked
+            if (!invoiceWindow) {
+                alert("Popup was blocked. Please allow popups for this site to view your invoice.");
+                // Alternative: show invoice in same window
+                window.location.href = "/invoice.html";
+            }
+        } catch (error) {
+            console.error("Error in downloadInvoice:", error);
+            alert("Error preparing invoice: " + error.message);
+        }
+    }
+    
     function showPaymentPage(hasFoodOrder) {
         const paymentAmountEl = document.getElementById('payment-amount');
         const foodSummaryEl = document.getElementById('food-summary');
@@ -585,9 +662,30 @@ document.getElementById('auth-container').style.height = '100vh';
         
         paymentAmountEl.value = total.toFixed(2);
         foodSummaryEl.innerHTML = foodHtml;
-        document.getElementById('booking-id').value = currentBooking.id;
-        showSection(paymentSection);
+        document.getElementById('booking-id').value = currentBooking.id; 
+
+    // Ensure the button is created only once and only after payment is successful
+    // Create download button (initially disabled)
+    if (!document.getElementById('download-invoice-btn')) {
+        const downloadButton = document.createElement('button');
+        downloadButton.textContent = 'Complete Payment to Download Invoice';
+        downloadButton.id = 'download-invoice-btn';
+        downloadButton.disabled = true;
+        downloadButton.onclick = function() { 
+            downloadInvoice(currentBooking.id);
+        };
+        downloadButton.classList.add('btn', 'btn-primary', 'mt-3');
+        paymentForm.appendChild(downloadButton);
+        
     }
+    
+
+    // Show the payment section
+    showSection(paymentSection);
+
+};
+ 
+   
 
     // Login function
     loginForm.addEventListener('submit', async (e) => {
@@ -823,15 +921,21 @@ document.getElementById('auth-container').style.height = '100vh';
                 const error = await response.json();
                 throw new Error(error.message || 'Payment failed');
             }
+
+            paymentCompleted = true;
             
             if (paymentMethod === 'CASH') {
                 showModal('Success', 'Your booking is confirmed! Please bring cash when you arrive.');
             } else {
                 showModal('Success', 'Payment completed successfully! Your tickets have been booked.');
             }
-            
-            showSection(homeSection);
-            paymentForm.reset();
+            const downloadBtn = document.getElementById('download-invoice-btn');
+        if (downloadBtn) {
+            downloadBtn.disabled = false;
+            downloadBtn.textContent = 'Download Invoice';
+        }
+            // showSection(homeSection);
+            // paymentForm.reset();
             
         } catch (error) {
             console.error('Error processing payment:', error);
