@@ -13,15 +13,17 @@ public class FoodService {
     private final FoodItemRepository foodItemRepository;
     private final BookingRepository bookingRepository;
     private final FoodComboRepository foodComboRepository;
-
+    private final FoodComboFactory foodComboFactory;
     public FoodService(FoodOrderRepository foodOrderRepository, 
                      FoodItemRepository foodItemRepository,
                      BookingRepository bookingRepository,
-                     FoodComboRepository foodComboRepository) {
+                     FoodComboRepository foodComboRepository,
+                     FoodComboFactory foodComboFactory) {
         this.foodOrderRepository = foodOrderRepository;
         this.foodItemRepository = foodItemRepository;
         this.bookingRepository = bookingRepository;
         this.foodComboRepository = foodComboRepository;
+        this.foodComboFactory = foodComboFactory;
     }
 
     public List<FoodItemDto> getAllFoodItems() {
@@ -31,7 +33,7 @@ public class FoodService {
     }
 
     public List<FoodComboDto> getAllFoodCombos() {
-        List<FoodCombo> combos = foodComboRepository.findAllWithItems(); // You'll need to implement this method
+        List<FoodCombo> combos = foodComboRepository.findAllWithItems();  
         return combos.stream()
             .map(this::convertToDto)
             .collect(Collectors.toList());
@@ -52,11 +54,14 @@ public class FoodService {
         // Process combo items using prototype pattern
         if (request.getCombos() != null) {
             request.getCombos().forEach(comboRequest -> {
-                FoodCombo comboPrototype = foodComboRepository.findByIdWithItems(comboRequest.getComboId())
-                    .orElseThrow(() -> new RuntimeException("Combo not found"));
+
+                FoodCombo orderCombo = foodComboFactory.createCombo(comboRequest.getComboId());
+
+                // FoodCombo comboPrototype = foodComboRepository.findByIdWithItems(comboRequest.getComboId())
+                //     .orElseThrow(() -> new RuntimeException("Combo not found"));
                 
-                // Clone the prototype for this order
-                FoodCombo orderCombo = comboPrototype.clone();
+                // // Clone the prototype for this order
+                // FoodCombo orderCombo = comboPrototype.clone();
                 
                 // Create order items from the cloned combo
                 orderCombo.getItems().forEach(foodItem -> {
