@@ -30,7 +30,7 @@ public class FoodCombo {
     // Prototype pattern implementation
     public FoodCombo clone() {
         FoodCombo clone = new FoodCombo();
-        clone.setId(this.id);
+        //clone.setId(this.id);
         clone.setName(this.name);
         clone.setDescription(this.description);
         clone.setDiscount(this.discount);
