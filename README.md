@@ -22,6 +22,7 @@ This system ensures a **seamless and engaging user experience**, eliminating the
 - **Food Combo Ordering:** Option to pre-order snacks and combo offers during booking.
 - **Payment Integration:** Supports multiple gateways like CARD, UPI, and CASH.
 - **Booking History:** Users can view and manage their past bookings.
+- **Invoice Generation:** Users can view and download their invoice with booking,food order and billing information.
 - **MVC Architecture:** Implements the **Model-View-Controller (MVC)** pattern to ensure separation of concerns and modular development.
 
 ---
